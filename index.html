@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ECU Checksum Fixer - Bosch MSE6.0 / MSE8.0</title>
+  <meta name="description" content="Verify and repair Bosch MSE6.0 and MSE8.0 ECU calibration checksums in your browser. Files never leave your computer.">
+  <style>
+    :root {
+      --bg: #f6f7f9; --fg: #1d2129; --muted: #5d6573; --card: #fff; --border: #d9dde3;
+      --accent: #2463eb; --ok: #157f3b; --ok-bg: #e3f5e9; --bad: #b42318; --bad-bg: #fde8e6;
+      --warn: #8a5a00; --warn-bg: #fff3d6;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14161a; --fg: #e6e8eb; --muted: #9aa3b0; --card: #1d2026; --border: #323741;
+        --accent: #6b9bff; --ok: #5fd08a; --ok-bg: #173323; --bad: #ff8a80; --bad-bg: #3b1a19;
+        --warn: #f5c060; --warn-bg: #3a2c10;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 900px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1 { font-size: 26px; margin: 0 0 4px; }
+    h2 { font-size: 18px; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+    a { color: var(--accent); }
+    .muted { color: var(--muted); }
+    .mono, code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13px; }
+    #drop {
+      margin: 24px 0 16px; padding: 36px 20px; text-align: center; cursor: pointer;
+      border: 2px dashed var(--border); border-radius: 12px; background: var(--card);
+    }
+    #drop:hover, #drop:focus, #drop.over { border-color: var(--accent); outline: none; }
+    #drop strong { display: block; font-size: 17px; margin-bottom: 4px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin: 16px 0; }
+    .card.error { border-color: var(--bad); background: var(--bad-bg); }
+    .card.done { border-color: var(--ok); }
+    .note { background: var(--warn-bg); color: var(--warn); padding: 8px 12px; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; display: block; overflow-x: auto; }
+    th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    .pill { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+    .pill.ok { color: var(--ok); background: var(--ok-bg); }
+    .pill.bad { color: var(--bad); background: var(--bad-bg); }
+    .pill.warn { color: var(--warn); background: var(--warn-bg); }
+    .summary { font-weight: 600; }
+    .ok-text { color: var(--ok); } .bad-text { color: var(--bad); }
+    button {
+      font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: 0;
+      border-radius: 8px; padding: 10px 18px; cursor: pointer;
+    }
+    button:disabled { opacity: .45; cursor: default; }
+    details { margin-top: 28px; }
+    summary { cursor: pointer; font-weight: 600; }
+    fieldset { border: 1px solid var(--border); border-radius: 8px; margin: 10px 0; }
+    fieldset label { display: inline-block; margin: 4px 16px 4px 0; }
+    fieldset input { width: 110px; padding: 4px 6px; background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 6px; }
+    #algos { padding-left: 20px; } #algos li { margin: 6px 0; }
+    select { font: inherit; padding: 2px 6px; }
+    footer { margin-top: 36px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 16px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>ECU Checksum Fixer</h1>
+    <p class="muted">Verify and repair Bosch calibration checksums after editing a map in TunerPro or WinOLS.
+      Runs entirely in your browser: your file is never uploaded.</p>
+
+    <div id="drop" role="button" tabindex="0" aria-label="Choose an ECU image">
+      <strong>Drop an ECU image here</strong>
+      <span class="muted">or click to choose a file (.bin, .MOD, .dtf, ...)</span>
+    </div>
+    <input id="file" type="file" hidden>
+
+    <div id="result" aria-live="polite"></div>
+
+    <h2>Supported algorithms</h2>
+    <ul id="algos"></ul>
+
+    <details>
+      <summary>Advanced</summary>
+      <p class="muted">Scan ranges in hex. Only needed if your image keeps its checksum records somewhere else.</p>
+      <div id="options"></div>
+    </details>
+
+    <footer>
+      For research, diagnostics and motorsport use. Flashing an ECU can immobilise or damage a vehicle, and modifying
+      emissions-related calibration is illegal for road use in most jurisdictions. Keep an untouched backup of the
+      original image. You are responsible for what you flash.
+      <br><a href="https://github.com/NetworkDir/bosch-mse6-checksum-tool">Source on GitHub</a>
+    </footer>
+  </main>
+
+  <script src="algorithms/registry.js"></script>
+  <!-- One script per checksum algorithm. Add new ones here. -->
+  <script src="algorithms/bosch-mse6.js"></script>
+  <script src="algorithms/bosch-mse8.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

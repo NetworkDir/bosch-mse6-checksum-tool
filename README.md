@@ -4,6 +4,8 @@ Verify and repair the calibration checksums in Bosch MSE6.0 ECU images — no co
 
 Edit a map in TunerPro/WinOLS, run this, flash. Zero dependencies, single file, Python 3.7+.
 
+**Web version: [networkdir.github.io/bosch-mse6-checksum-tool](https://networkdir.github.io/bosch-mse6-checksum-tool/)**: drop an image, download the fixed file. It runs entirely in your browser, so your file is never uploaded. It detects the algorithm automatically and supports Bosch MSE6.0 and MSE8.0 (beta). See [Web version](#web-version).
+
 ```
 $ python bosch_mse6_checksum.py tuned.bin -o tuned_fixed.bin
 tuned.bin  (1572864 bytes)
@@ -103,6 +105,52 @@ mse6.verify(data, scan_start=0x0, scan_end=0x200000)
 ```
 
 **Out of scope:** cryptographically signed images (RSA/ECDSA) and keyed MACs. Those cannot be recomputed from examples, on any ECU, by anyone without the key.
+
+## Web version
+
+`index.html` is a static page served by GitHub Pages. The algorithms are plain JavaScript ports of the Python scripts and produce byte-identical output:
+
+```
+index.html                 page
+app.js                     UI: load file, detect, show records, fix, download
+algorithms/registry.js     registry + shared helpers (u32 read/write, CRC-32, byte search)
+algorithms/bosch-mse6.js   Bosch MSE6.0 (same as bosch_mse6_checksum.py)
+algorithms/bosch-mse8.js   Bosch MSE8.0 / E186, beta (same as bosch_mse8_checksum_beta.py)
+```
+
+When a file is loaded, every registered algorithm is tried and the ones that recognise the image are offered. The fixed file is re-verified before it is downloaded; if the self-check fails, nothing is downloaded.
+
+To run it locally, serve the folder with any static server, e.g. `python -m http.server`, and open `http://localhost:8000`.
+
+### Adding an algorithm
+
+1. Create `algorithms/<name>.js`:
+
+   ```js
+   (function (R) {
+     "use strict";
+     R.register({
+       id: "vendor-ecu",            // unique
+       name: "Vendor ECU",          // shown in the UI
+       status: "beta",              // "confirmed" once checked against a flashed vehicle
+       description: "One line about the algorithm.",
+       tested: [],                  // e.g. ["Bike (year) - software id"]
+       notes: "",                   // optional warning shown with the results
+       options: [],                 // optional hex inputs: { key, label, default }
+
+       // Return [] if the image is not recognised, otherwise one entry per checksum:
+       // { label, offset, start, end, stored, computed, ok }
+       verify(bytes, opts) { return []; },
+
+       // Return a corrected copy (Uint8Array). Never modify `bytes`.
+       apply(bytes, opts) { return new Uint8Array(bytes); },
+     });
+   })(self.ChecksumRegistry);
+   ```
+
+2. Add `<script src="algorithms/<name>.js"></script>` to `index.html`, next to the others.
+
+Helpers available on `R`: `readU32BE`, `writeU32BE`, `crc32(bytes, start, end)`, `indexOf(bytes, pattern, from)`.
 
 ## Contributing
 
