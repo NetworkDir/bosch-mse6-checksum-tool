@@ -83,9 +83,18 @@ That invariant is also what makes records findable without hardcoded offsets: `f
 
 ## Scope
 
-**Confirmed:** CFMoto NK250 (2024), Bosch MSE6.0, software `F01R00DG1Z_X10A04B228`, 1.5 MB (`0x180000`) images.
+**Confirmed** (Bosch MSE6.0, 1.5 MB / `0x180000` images):
 
-**Likely, but untested:** other MSE6.0 images. Records are discovered structurally rather than by fixed offset, so a different layout should still be handled — but nobody has verified this on a second model yet. If you try one, run the verify-only mode against a known-good factory image first: if the tool reports every record `OK` on an untouched file, the algorithm matches your ECU.
+| Vehicle | Software | How it was confirmed |
+| --- | --- | --- |
+| CFMoto NK250 (2024) | `F01R00DG1Z_X10A04B228` | Reference ECU the tool was developed on |
+| CFMoto 450SR (2023) | `F01R00DKAI_X10G04A120` | Repaired output of a modified image is byte-identical (MD5) to a commercial flash tool's checksum correction of the same image; flashed and running |
+
+The 450SR `X10G04A121` calibration uses the same record layout (checked on a bench read).
+
+> **450SR factory images report `BAD`.** Untouched `X10G04A120` and `X10G04A121` reads fail the two records whose regions include `0x140000`–`0x14FFFF` (the `0x150000`–`0x157FFF` record passes), even though the bike runs on them. The stored values simply don't match the image as read, so the factory-image test below does not work on this model. Use the comparison method instead: correct a modified file with a known tool and with this script, and check that the outputs are identical.
+
+**Likely, but untested:** other MSE6.0 images. Records are discovered structurally rather than by fixed offset, so a different layout should still be handled. If you try one, run the verify-only mode against a known-good factory image first: if the tool reports every record `OK` on an untouched file, the algorithm matches your ECU. If the factory image fails (as on the 450SR), compare against a file corrected by a known tool instead.
 
 If the header sits outside `0x140000`–`0x140400`, widen the scan:
 
