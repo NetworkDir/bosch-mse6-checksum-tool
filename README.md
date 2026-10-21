@@ -4,7 +4,7 @@ Verify and repair the calibration checksums in Bosch MSE6.0 ECU images — no co
 
 Edit a map in TunerPro/WinOLS, run this, flash. Zero dependencies, single file, Python 3.7+.
 
-**Web version: [networkdir.github.io/bosch-mse6-checksum-tool](https://networkdir.github.io/bosch-mse6-checksum-tool/)**: drop an image, download the fixed file. It runs entirely in your browser, so your file is never uploaded. It detects the algorithm automatically and supports Bosch MSE6.0 and MSE8.0 (beta). See [Web version](#web-version).
+**Web version: [networkdir.github.io/bosch-mse6-checksum-tool](https://networkdir.github.io/bosch-mse6-checksum-tool/)**: drop an image, download the fixed file. It runs entirely in your browser, so your file is never uploaded. It detects the algorithm automatically and supports Bosch MSE6.0 and MSE8.0 (E186). See [Web version](#web-version).
 
 ```
 $ python bosch_mse6_checksum.py tuned.bin -o tuned_fixed.bin
@@ -98,7 +98,13 @@ The 450SR `X10G04A121` calibration uses the same record layout (checked on a ben
 
 **Likely, but untested:** other MSE6.0 images. Records are discovered structurally rather than by fixed offset, so a different layout should still be handled. If you try one, run the verify-only mode against a known-good factory image first: if the tool reports every record `OK` on an untouched file, the algorithm matches your ECU. If the factory image fails (as on the 450SR), compare against a file corrected by a known tool instead.
 
-If the header sits outside `0x140000`–`0x140400`, widen the scan:
+**Confirmed, Bosch MSE8.0 / E186** (`bosch_mse8_checksum_beta.py` despite its name, and the web version): CRC-32 of the 256 KB calibration block XOR `0xA18AFC77`, stored big-endian at block + `0x3FFF8`. The block is found by its footer signature at block + `0x3FFE0`.
+
+| Vehicle | Software | How it was confirmed |
+| --- | --- | --- |
+| RKS RZ125S (2024) | `F01RB0D2G0_XD105A1A25` | Repaired output of a modified image is byte-identical (MD5) to a commercial flash tool's checksum correction of the same image (block at `0x80000`, 4 bytes changed) |
+
+If the MSE6.0 header sits outside `0x140000`–`0x140400`, widen the scan:
 
 ```python
 mse6.verify(data, scan_start=0x0, scan_end=0x200000)
@@ -115,7 +121,7 @@ index.html                 page
 app.js                     UI: load file, detect, show records, fix, download
 algorithms/registry.js     registry + shared helpers (u32 read/write, CRC-32, byte search)
 algorithms/bosch-mse6.js   Bosch MSE6.0 (same as bosch_mse6_checksum.py)
-algorithms/bosch-mse8.js   Bosch MSE8.0 / E186, beta (same as bosch_mse8_checksum_beta.py)
+algorithms/bosch-mse8.js   Bosch MSE8.0 / E186 (same as bosch_mse8_checksum_beta.py)
 ```
 
 When a file is loaded, every registered algorithm is tried and the ones that recognise the image are offered. The fixed file is re-verified before it is downloaded; if the self-check fails, nothing is downloaded.
@@ -132,7 +138,7 @@ To run it locally, serve the folder with any static server, e.g. `python -m http
      R.register({
        id: "vendor-ecu",            // unique
        name: "Vendor ECU",          // shown in the UI
-       status: "beta",              // "confirmed" once checked against a flashed vehicle
+       status: "beta",              // "confirmed" once its output matches a known tool on a real image
        description: "One line about the algorithm.",
        tested: [],                  // e.g. ["Bike (year) - software id"]
        notes: "",                   // optional warning shown with the results
