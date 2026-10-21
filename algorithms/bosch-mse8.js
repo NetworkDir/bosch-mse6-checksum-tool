@@ -31,10 +31,11 @@
   R.register({
     id: "bosch-mse8",
     name: "Bosch MSE8.0 (E186)",
-    status: "beta",
+    status: "confirmed",
     description: "CRC-32 of the 256 KB calibration block XOR 0xA18AFC77, block found by its footer signature.",
-    tested: [],
-    notes: "Beta: not yet confirmed against a flashed bike. Compare the result with a known tool before flashing.",
+    tested: [
+      "RKS RZ125S (2024) - F01RB0D2G0_XD105A1A25",
+    ],
 
     verify(bytes) {
       const block = findBlock(bytes);
