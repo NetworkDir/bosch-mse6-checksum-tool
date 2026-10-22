@@ -104,23 +104,31 @@ The 450SR `X10G04A121` calibration uses the same record layout (checked on a ben
 | --- | --- | --- |
 | RKS RZ125S (2024) | `F01RB0D2G0_XD105A1A25` | Repaired output of a modified image is byte-identical (MD5) to a commercial flash tool's checksum correction of the same image (block at `0x80000`, 4 bytes changed) |
 
-**Confirmed, Bosch MG1 / MG1CA094** (Bajaj / KTM / TVS; `bosch_mg1_checksum.py` and the web version): CRC-32 of the 32 KB calibration block XOR `0xC7E11B11`, stored big-endian at block + `0x7F18`. The block starts with `DEADBEEF` and has a `12345678` fill in front of the CRC.
+**Confirmed, Bosch MG1 / MG1CA094** (Bajaj / KTM / TVS; `bosch_mg1_checksum.py` and the web version). An MG1 image has several blocks: code at `0x40000` and `0xC0000`, calibration at `0x80000` on every image seen so far. Each block starts with `DEADBEEF` on a 256 KB boundary and ends with a `0x15C`-byte `12345678` fill followed by a big-endian CRC:
 
-The word at block + `0x79FC` is free and lies inside the CRC range, so there are two valid ways to repair a modified file. Flash tools use both:
+```
+CRC-32, reflected, poly 0xEDB88320, init 0xACC08E37, xorout 0xFFFFFFFF
+of block start .. end of the fill            == zlib.crc32(block, 0x533F71C8)
+```
 
-- `--mode update` (default): rewrite the CRC.
-- `--mode keep`: keep the original CRC and set the word at block + `0x79FC` so the CRC still matches. The CRC value stays identical to the factory one.
+The calibration block length differs between models (CRC at `0x87F18`, `0x87238`, `0x88938`, `0x8AF38` or `0xBFFF8`); the tool finds every block on its own. Bosch MSE8.0 uses the same CRC: its fixed `0xA18AFC77` is this CRC for a `0x3FFF8`-byte block.
+
+There are two valid ways to repair a modified block, and flash tools use both:
+
+- `--mode update` (default): rewrite the CRC of every block that does not match.
+- `--mode keep`: keep the original CRC and set the free word right before the block's `FA FA ..` signature marker so the CRC still matches. The CRC value stays identical to the factory one. The tool refuses this mode when that word is not free (it holds data on the Duke 390).
 
 ```bash
 python bosch_mg1_checksum.py tuned.bin -o tuned_fixed.bin               # update
 python bosch_mg1_checksum.py tuned.bin -o tuned_fixed.bin --mode keep   # keep
 ```
 
-| Vehicle | Software | How it was confirmed |
+| Vehicle | Images | How it was confirmed |
 | --- | --- | --- |
-| Bajaj Pulsar NS200 (2018-22) | `BAK08IN1606005` | Factory image verifies `OK`. Three modified images repaired with `update` and `keep` are byte-identical (MD5) to a commercial flash tool's output (block at `0x80000`) |
+| Bajaj Pulsar NS200 (2018-22), `BAK08IN1606005` | factory + 4 modified | All blocks of the factory image verify `OK`. Three modified images repaired with `update` and `keep` are byte-identical (MD5) to a commercial flash tool's output |
+| Bajaj NS125, RS200 / Pulsar (3 calibrations, two block layouts), KTM Duke 390 (2017, 3 images incl. one patched by a flash tool) | 9 | Every block (3 per image, 27 CRCs) verifies `OK` |
 
-MG1 calibrations also carry a signature block (at block + `0x7A00` on the NS200). The ECU only accepts a modified file if your flash tool has patched it. This tool fixes the CRC, not the signature.
+MG1 calibrations also carry a signature block (the `FA FA ..` marker). The ECU only accepts a modified file if your flash tool has patched it. This tool fixes the CRCs, not the signature.
 
 ### Other ECUs (web version)
 
