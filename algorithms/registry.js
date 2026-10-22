@@ -21,8 +21,11 @@
     bytes[off + 3] = value & 0xFF;
   }
 
-  /** Standard CRC-32 (zlib / IEEE 802.3) over bytes[start, end). */
-  function crc32(bytes, start, end) {
+  /**
+   * CRC-32 (zlib / IEEE 802.3) over bytes[start, end). `seed` works like zlib's crc32(data, value):
+   * the CRC of preceding data, 0 by default.
+   */
+  function crc32(bytes, start, end, seed) {
     if (!crcTable) {
       crcTable = new Uint32Array(256);
       for (let n = 0; n < 256; n++) {
@@ -31,7 +34,7 @@
         crcTable[n] = c >>> 0;
       }
     }
-    let crc = 0xFFFFFFFF;
+    let crc = ((seed || 0) ^ 0xFFFFFFFF) >>> 0;
     for (let i = start; i < end; i++) crc = crcTable[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
     return (crc ^ 0xFFFFFFFF) >>> 0;
   }
