@@ -152,8 +152,18 @@
     for (const algo of R.algorithms) {
       if (!algo.options.length) continue;
       state.options[algo.id] = R.defaultOptions(algo);
-      box.append(el("fieldset", {}, [el("legend", {}, algo.name)].concat(algo.options.map((o) =>
-        el("label", {}, [o.label + " ", el("input", {
+      box.append(el("fieldset", {}, [el("legend", {}, algo.name)].concat(algo.options.map((o) => {
+        if (o.choices) {
+          const sel = el("select", {
+            onchange: (ev) => { state.options[algo.id][o.key] = ev.target.value; render(); },
+          }, o.choices.map(([value, text]) => {
+            const opt = el("option", { value: value }, text);
+            if (value === o.default) opt.selected = true;
+            return opt;
+          }));
+          return el("label", {}, [o.label + " ", sel]);
+        }
+        return el("label", {}, [o.label + " ", el("input", {
           class: "mono", value: hex(o.default, 6), spellcheck: "false",
           onchange: (ev) => {
             const v = parseInt(ev.target.value, 16);
@@ -161,7 +171,8 @@
             state.options[algo.id][o.key] = v;
             render();
           },
-        })])))));
+        })]);
+      }))));
     }
   }
 

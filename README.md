@@ -4,7 +4,7 @@ Verify and repair the calibration checksums in Bosch MSE6.0 ECU images — no co
 
 Edit a map in TunerPro/WinOLS, run this, flash. Zero dependencies, single file, Python 3.7+.
 
-**Web version: [networkdir.github.io/bosch-mse6-checksum-tool](https://networkdir.github.io/bosch-mse6-checksum-tool/)**: drop an image, download the fixed file. It runs entirely in your browser, so your file is never uploaded. It detects the algorithm automatically and supports Bosch MSE6.0 and MSE8.0 (E186). See [Web version](#web-version).
+**Web version: [networkdir.github.io/bosch-mse6-checksum-tool](https://networkdir.github.io/bosch-mse6-checksum-tool/)**: drop an image, download the fixed file. It runs entirely in your browser, so your file is never uploaded. It detects the algorithm automatically and supports Bosch MSE6.0, MSE8.0 (E186) and MG1 (Bajaj / KTM / TVS). See [Web version](#web-version).
 
 ```
 $ python bosch_mse6_checksum.py tuned.bin -o tuned_fixed.bin
@@ -104,6 +104,24 @@ The 450SR `X10G04A121` calibration uses the same record layout (checked on a ben
 | --- | --- | --- |
 | RKS RZ125S (2024) | `F01RB0D2G0_XD105A1A25` | Repaired output of a modified image is byte-identical (MD5) to a commercial flash tool's checksum correction of the same image (block at `0x80000`, 4 bytes changed) |
 
+**Confirmed, Bosch MG1 / MG1CA094** (Bajaj / KTM / TVS; `bosch_mg1_checksum.py` and the web version): CRC-32 of the 32 KB calibration block XOR `0xC7E11B11`, stored big-endian at block + `0x7F18`. The block starts with `DEADBEEF` and has a `12345678` fill in front of the CRC.
+
+The word at block + `0x79FC` is free and lies inside the CRC range, so there are two valid ways to repair a modified file. Flash tools use both:
+
+- `--mode update` (default): rewrite the CRC.
+- `--mode keep`: keep the original CRC and set the word at block + `0x79FC` so the CRC still matches. The CRC value stays identical to the factory one.
+
+```bash
+python bosch_mg1_checksum.py tuned.bin -o tuned_fixed.bin               # update
+python bosch_mg1_checksum.py tuned.bin -o tuned_fixed.bin --mode keep   # keep
+```
+
+| Vehicle | Software | How it was confirmed |
+| --- | --- | --- |
+| Bajaj Pulsar NS200 (2018-22) | `BAK08IN1606005` | Factory image verifies `OK`. Three modified images repaired with `update` and `keep` are byte-identical (MD5) to a commercial flash tool's output (block at `0x80000`) |
+
+MG1 calibrations also carry a signature block (at block + `0x7A00` on the NS200). The ECU only accepts a modified file if your flash tool has patched it. This tool fixes the CRC, not the signature.
+
 If the MSE6.0 header sits outside `0x140000`–`0x140400`, widen the scan:
 
 ```python
@@ -122,6 +140,7 @@ app.js                     UI: load file, detect, show records, fix, download
 algorithms/registry.js     registry + shared helpers (u32 read/write, CRC-32, byte search)
 algorithms/bosch-mse6.js   Bosch MSE6.0 (same as bosch_mse6_checksum.py)
 algorithms/bosch-mse8.js   Bosch MSE8.0 / E186 (same as bosch_mse8_checksum_beta.py)
+algorithms/bosch-mg1.js    Bosch MG1 / MG1CA094 (same as bosch_mg1_checksum.py)
 ```
 
 When a file is loaded, every registered algorithm is tried and the ones that recognise the image are offered. The fixed file is re-verified before it is downloaded; if the self-check fails, nothing is downloaded.
@@ -142,7 +161,8 @@ To run it locally, serve the folder with any static server, e.g. `python -m http
        description: "One line about the algorithm.",
        tested: [],                  // e.g. ["Bike (year) - software id"]
        notes: "",                   // optional warning shown with the results
-       options: [],                 // optional hex inputs: { key, label, default }
+       options: [],                 // optional: { key, label, default } hex input, or add
+                                    // choices: [[value, text], ...] for a dropdown
 
        // Return [] if the image is not recognised, otherwise one entry per checksum:
        // { label, offset, start, end, stored, computed, ok }

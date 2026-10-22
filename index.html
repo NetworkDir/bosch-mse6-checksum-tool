@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ECU Checksum Fixer - Bosch MSE6.0 / MSE8.0</title>
-  <meta name="description" content="Verify and repair Bosch MSE6.0 and MSE8.0 ECU calibration checksums in your browser. Files never leave your computer.">
+  <title>ECU Checksum Fixer - Bosch MSE6.0 / MSE8.0 / MG1</title>
+  <meta name="description" content="Verify and repair Bosch MSE6.0, MSE8.0 and MG1 ECU calibration checksums in your browser. Files never leave your computer.">
   <style>
     :root {
       --bg: #f6f7f9; --fg: #1d2129; --muted: #5d6573; --card: #fff; --border: #d9dde3;
@@ -95,6 +95,7 @@
   <!-- One script per checksum algorithm. Add new ones here. -->
   <script src="algorithms/bosch-mse6.js"></script>
   <script src="algorithms/bosch-mse8.js"></script>
+  <script src="algorithms/bosch-mg1.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
