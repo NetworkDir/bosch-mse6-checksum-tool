@@ -1,10 +1,10 @@
-# bosch-mse6-checksum-tool
+# moto-ecu-checksum
 
-Verify and repair the calibration checksums in Bosch MSE6.0 ECU images — no commercial tooling required.
+Verify and repair the checksums in motorcycle ECU images (Bosch MSE6.0, MSE8.0, MG1, Yamaha, Honda Keihin, Dell'Orto and more) — no commercial tooling required.
 
-Edit a map in TunerPro/WinOLS, run this, flash. Zero dependencies, single file, Python 3.7+.
+Edit a map in TunerPro/WinOLS, fix the checksum, flash. Zero dependencies: use the web page, or the single-file Python scripts (Python 3.7+) for the Bosch ECUs.
 
-**Web version: [networkdir.github.io/bosch-mse6-checksum-tool](https://networkdir.github.io/bosch-mse6-checksum-tool/)**: drop an image, download the fixed file. It runs entirely in your browser, so your file is never uploaded. It detects the algorithm automatically and supports Bosch MSE6.0, MSE8.0 (E186), MG1 (Bajaj / KTM / TVS), Yamaha MT, Honda X-ADV (Keihin), Dell'Orto ECM, QH250 and Italjet / Suzuki-type ECUs. See [Web version](#web-version) and [Other ECUs](#other-ecus-web-version).
+**Web version: [networkdir.github.io/moto-ecu-checksum](https://networkdir.github.io/moto-ecu-checksum/)**: drop an image, download the fixed file. It runs entirely in your browser, so your file is never uploaded. It detects the algorithm automatically and supports Bosch MSE6.0, MSE8.0 (E186), MG1 (Bajaj / KTM / TVS), Yamaha MT, Honda X-ADV (Keihin), Dell'Orto ECM, QH250 and Italjet / Suzuki-type ECUs. See [Web version](#web-version) and [Other ECUs](#other-ecus-web-version).
 
 ```
 $ python bosch_mse6_checksum.py tuned.bin -o tuned_fixed.bin
@@ -25,8 +25,8 @@ wrote tuned_fixed.bin
 None. Copy the file.
 
 ```bash
-git clone https://github.com/<you>/bosch-mse6-checksum-tool
-cd bosch-mse6-checksum-tool
+git clone https://github.com/NetworkDir/moto-ecu-checksum
+cd moto-ecu-checksum
 python bosch_mse6_checksum.py --help
 ```
 
@@ -203,7 +203,7 @@ Helpers available on `R`: `readU32BE`, `writeU32BE`, `crc32(bytes, start, end)`,
 
 ## Contributing
 
-Samples are more useful than code. If you have a **pre/post checksum pair** for an MSE6.0 variant this doesn't handle, open an issue — the pair alone is usually enough to extend coverage.
+Samples are more useful than code. If you have a **pre/post checksum pair** for an ECU or variant this doesn't handle, open an issue — the pair alone is usually enough to extend coverage.
 
 Pairs where the two images differ in *different areas of the map* are especially valuable: they're what pin down region boundaries. A pair differing by a single byte is better still.
 
