@@ -4,7 +4,7 @@ Verify and repair the calibration checksums in Bosch MSE6.0 ECU images — no co
 
 Edit a map in TunerPro/WinOLS, run this, flash. Zero dependencies, single file, Python 3.7+.
 
-**Web version: [networkdir.github.io/bosch-mse6-checksum-tool](https://networkdir.github.io/bosch-mse6-checksum-tool/)**: drop an image, download the fixed file. It runs entirely in your browser, so your file is never uploaded. It detects the algorithm automatically and supports Bosch MSE6.0, MSE8.0 (E186) and MG1 (Bajaj / KTM / TVS). See [Web version](#web-version).
+**Web version: [networkdir.github.io/bosch-mse6-checksum-tool](https://networkdir.github.io/bosch-mse6-checksum-tool/)**: drop an image, download the fixed file. It runs entirely in your browser, so your file is never uploaded. It detects the algorithm automatically and supports Bosch MSE6.0, MSE8.0 (E186), MG1 (Bajaj / KTM / TVS), Yamaha MT, Honda X-ADV (Keihin), Dell'Orto ECM, QH250 and Italjet / Suzuki-type ECUs. See [Web version](#web-version) and [Other ECUs](#other-ecus-web-version).
 
 ```
 $ python bosch_mse6_checksum.py tuned.bin -o tuned_fixed.bin
@@ -122,6 +122,24 @@ python bosch_mg1_checksum.py tuned.bin -o tuned_fixed.bin --mode keep   # keep
 
 MG1 calibrations also carry a signature block (at block + `0x7A00` on the NS200). The ECU only accepts a modified file if your flash tool has patched it. This tool fixes the CRC, not the signature.
 
+### Other ECUs (web version)
+
+Every algorithm below reproduces a commercial flash tool's checksum correction byte for byte on the listed images, and the factory images verify `OK`.
+
+| Algorithm | Vehicles confirmed | Checksum |
+| --- | --- | --- |
+| Yamaha MT series | MT-25 2019 (`BS81_128C8000`), MT-07 2014-16 (`MT07A04E`), MT-07 2020 (`B342_120C4580`), MT-07 2021 (`BAT1_12464001`), MT-09 SP 2019 (`MT09045A`) | Sum of all big-endian 16-bit words of the image equals `0x5AA5` (1 MB images) or `0xE81F` (896 KB MT-07 2020 image). The checksum word is at end - 8, after the 8-character software ID. |
+| Honda X-ADV 750 (Keihin) | X-ADV 750 2019 (`MKHF204`) | One byte at end - 8 makes the byte sum of the image 0 modulo 256. |
+| Dell'Orto ECM | Bajaj RS200 2024 (`JL351458010651`, 3 calibrations) | One's complement of the byte sum of `0x80000`-`0x921FD`, big-endian 16-bit at `0x921FE`. |
+| QH250 | QH250 (`E2400-05`) | Big-endian 16-bit words of `0x0000`-`0x7FEF` sum to 0; checksum at `0x7FEE`. |
+| Italjet / Suzuki-type | Italjet Dragstar 200 2023 (`5710BL01` / `33950-03K00`) | Byte sum of `0x20000` to the end, little-endian 16-bit followed by its complement, right after the `AA55CC33` marker holding the part number. |
+
+Notes:
+
+- The 896 KB Yamaha target (`0xE81F`) is confirmed on the MT-07 2020 image only.
+- Load plain binary images. Raw reads that still carry the flash tool's file header (a few hundred bytes longer than the flash size) are not recognised.
+- **Not supported:** Royal Enfield Hunter 350 (`CAAJ1990`). Its 32 KB calibration has a 219-byte header that changes completely on every edit and contains no plain hash, so it is a keyed signature or encryption.
+
 If the MSE6.0 header sits outside `0x140000`–`0x140400`, widen the scan:
 
 ```python
@@ -141,6 +159,11 @@ algorithms/registry.js     registry + shared helpers (u32 read/write, CRC-32, by
 algorithms/bosch-mse6.js   Bosch MSE6.0 (same as bosch_mse6_checksum.py)
 algorithms/bosch-mse8.js   Bosch MSE8.0 / E186 (same as bosch_mse8_checksum_beta.py)
 algorithms/bosch-mg1.js    Bosch MG1 / MG1CA094 (same as bosch_mg1_checksum.py)
+algorithms/yamaha-mt.js    Yamaha MT series
+algorithms/honda-keihin.js Honda X-ADV 750 (Keihin)
+algorithms/dellorto-ecm.js Dell'Orto ECM
+algorithms/qh250.js        QH250
+algorithms/italjet-suzuki.js  Italjet / Suzuki-type ECU
 ```
 
 When a file is loaded, every registered algorithm is tried and the ones that recognise the image are offered. The fixed file is re-verified before it is downloaded; if the self-check fails, nothing is downloaded.
