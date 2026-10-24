@@ -4,7 +4,7 @@ Verify and repair the checksums in motorcycle ECU images (Bosch MSE6.0, MSE8.0, 
 
 Edit a map in TunerPro/WinOLS, fix the checksum, flash. Zero dependencies: use the web page, or the single-file Python scripts (Python 3.7+) for the Bosch ECUs.
 
-**Web version: [networkdir.github.io/moto-ecu-checksum](https://networkdir.github.io/moto-ecu-checksum/)**: drop an image, download the fixed file. It runs entirely in your browser, so your file is never uploaded. It detects the algorithm automatically and supports Bosch MSE6.0, MSE8.0 (E186), MG1 (Bajaj / KTM / TVS), Yamaha MT, Honda X-ADV (Keihin), Dell'Orto ECM, QH250 and Italjet / Suzuki-type ECUs. See [Web version](#web-version) and [Other ECUs](#other-ecus-web-version).
+**Web version: [networkdir.github.io/moto-ecu-checksum](https://networkdir.github.io/moto-ecu-checksum/)**: drop an image, download the fixed file. It runs entirely in your browser, so your file is never uploaded. It detects the algorithm automatically and supports Bosch MSE6.0, MSE8.0 (E186), MG1 (Bajaj / KTM / TVS), Yamaha MT, Honda X-ADV / ADV350 (Keihin), Dell'Orto ECM, QH250 and Italjet / Suzuki-type ECUs. See [Web version](#web-version) and [Other ECUs](#other-ecus-web-version).
 
 ```
 $ python bosch_mse6_checksum.py tuned.bin -o tuned_fixed.bin
@@ -137,7 +137,7 @@ Every algorithm below reproduces a commercial flash tool's checksum correction b
 | Algorithm | Vehicles confirmed | Checksum |
 | --- | --- | --- |
 | Yamaha MT series | MT-25 2019 (`BS81_128C8000`), MT-07 2014-16 (`MT07A04E`), MT-07 2020 (`B342_120C4580`), MT-07 2021 (`BAT1_12464001`), MT-09 SP 2019 (`MT09045A`) | Sum of all big-endian 16-bit words of the image equals `0x5AA5` (1 MB images) or `0xE81F` (896 KB MT-07 2020 image). The checksum word is at end - 8, after the 8-character software ID. |
-| Honda X-ADV 750 (Keihin) | X-ADV 750 2019 (`MKHF204`) | One byte at end - 8 makes the byte sum of the image 0 modulo 256. |
+| Honda (Keihin) | X-ADV 750 2019 (`MKHF204`), ADV350 2024 (`KN62804B`, 2 factory images) | One byte at end - 8 makes a byte sum 0 modulo 256: the whole image on the X-ADV (512 KB), `0x10000` to the end on the ADV350 (768 KB). |
 | Dell'Orto ECM | Bajaj RS200 2024 (`JL351458010651`, 3 calibrations) | One's complement of the byte sum of `0x80000`-`0x921FD`, big-endian 16-bit at `0x921FE`. |
 | QH250 | QH250 (`E2400-05`) | Big-endian 16-bit words of `0x0000`-`0x7FEF` sum to 0; checksum at `0x7FEE`. |
 | Italjet / Suzuki-type | Italjet Dragstar 200 2023 (`5710BL01` / `33950-03K00`) | Byte sum of `0x20000` to the end, little-endian 16-bit followed by its complement, right after the `AA55CC33` marker holding the part number. |
@@ -168,7 +168,7 @@ algorithms/bosch-mse6.js   Bosch MSE6.0 (same as bosch_mse6_checksum.py)
 algorithms/bosch-mse8.js   Bosch MSE8.0 / E186 (same as bosch_mse8_checksum_beta.py)
 algorithms/bosch-mg1.js    Bosch MG1 / MG1CA094 (same as bosch_mg1_checksum.py)
 algorithms/yamaha-mt.js    Yamaha MT series
-algorithms/honda-keihin.js Honda X-ADV 750 (Keihin)
+algorithms/honda-keihin.js Honda (Keihin): X-ADV 750, ADV350
 algorithms/dellorto-ecm.js Dell'Orto ECM
 algorithms/qh250.js        QH250
 algorithms/italjet-suzuki.js  Italjet / Suzuki-type ECU
